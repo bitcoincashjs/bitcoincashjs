@@ -14,7 +14,7 @@ console.log(address.toString()) // 15WZwpw3BofscM2u43ji85BXucai5YGToL
 ```javascript
 const bch = require('bitcoincashjs');
 
-const value = new Buffer('Bitcoin Cash - Peer-to-Peer Electronic Cash');
+const value = Buffer.from('Bitcoin Cash - Peer-to-Peer Electronic Cash');
 const hash = bch.crypto.Hash.sha256(value);
 const bn = bch.crypto.BN.fromBuffer(hash);
 const address = new bch.PrivateKey(bn).toAddress();
