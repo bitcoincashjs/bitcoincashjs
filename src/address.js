@@ -353,7 +353,8 @@ Address._transformStringCashAddr = function(data, network, type) {
   $.checkArgument(
       !network ||
           (network === 'livenet' && decoded.prefix === 'bitcoincash') ||
-          (network === 'testnet' && decoded.prefix === 'bchtest'),
+          (network === 'testnet' && decoded.prefix === 'bchtest') ||
+          (network === 'testnet' && decoded.prefix === 'bchreg'),
       'Invalid network.'
   );
   $.checkArgument(
@@ -622,7 +623,10 @@ Address.prototype._toStringBitpay = function() {
  * @returns {string} Bitcoin address
  */
 Address.prototype._toStringCashAddr = function() {
-  var prefix = this.network.toString() === 'livenet' ? 'bitcoincash' : 'bchtest';
+  var prefix = this.network.toString();
+  if (prefix === 'livenet') prefix = 'bitcoincash';
+  else if (prefix === 'testnet' && this.network.regtestEnabled !== true) prefix = 'bchtest';
+  else if (prefix === 'testnet' && this.network.regtestEnabled === true) prefix = 'bchreg';
   var type = this.type === Address.PayToPublicKeyHash ? 'P2PKH' : 'P2SH';
   return cashaddr.encode(prefix, type, this.hashBuffer);
 }
