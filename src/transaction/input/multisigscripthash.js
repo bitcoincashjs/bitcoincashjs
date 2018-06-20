@@ -23,12 +23,11 @@ function MultiSigScriptHashInput(input, pubkeys, threshold, signatures) {
   threshold = threshold || input.threshold;
   signatures = signatures || input.signatures;
   this.publicKeys = _.sortBy(pubkeys, function(publicKey) { return publicKey.toString('hex'); });
-  // this.redeemScript = Script.buildMultisigOut(this.publicKeys, threshold);
-  this.redeemScript = Script.buildPublicKeyHashIn(this.publicKeys, threshold);
+  this.redeemScript = Script.buildMultisigOut(this.publicKeys, threshold);
   $.checkState(Script.buildScriptHashOut(this.redeemScript).equals(this.output.script),
-               'Provided public keys don\'t hash to the provided output');
+    'Provided public keys don\'t hash to the provided output');
   this.publicKeyIndex = {};
-  _.each(this.publicKeys, function(publicKey, index) {
+  this.publicKeys.forEach((publicKey, index) => {
     self.publicKeyIndex[publicKey.toString()] = index;
   });
   this.threshold = threshold;
@@ -40,27 +39,17 @@ inherits(MultiSigScriptHashInput, Input);
 MultiSigScriptHashInput.prototype.toObject = function() {
   var obj = Input.prototype.toObject.apply(this, arguments);
   obj.threshold = this.threshold;
-  obj.publicKeys = _.map(this.publicKeys, function(publicKey) { return publicKey.toString(); });
+  obj.publicKeys = this.publicKeys.map(publicKey => publicKey.toString());
   obj.signatures = this._serializeSignatures();
   return obj;
 };
 
 MultiSigScriptHashInput.prototype._deserializeSignatures = function(signatures) {
-  return _.map(signatures, function(signature) {
-    if (!signature) {
-      return undefined;
-    }
-    return new TransactionSignature(signature);
-  });
+  return signatures.map(signature => signature ? new TransactionSignature(signature) : undefined);
 };
 
 MultiSigScriptHashInput.prototype._serializeSignatures = function() {
-  return _.map(this.signatures, function(signature) {
-    if (!signature) {
-      return undefined;
-    }
-    return signature.toObject();
-  });
+  return this.signatures.map(signature => signature ? signature.toObject() : undefined);
 };
 
 MultiSigScriptHashInput.prototype.getSignatures = function(transaction, privateKey, index, sigtype) {
@@ -69,7 +58,7 @@ MultiSigScriptHashInput.prototype.getSignatures = function(transaction, privateK
 
   var self = this;
   var results = [];
-  _.each(this.publicKeys, function(publicKey) {
+  this.publicKeys.forEach(publicKey => {
     if (publicKey.toString() === privateKey.publicKey.toString()) {
       results.push(new TransactionSignature({
         publicKey: privateKey.publicKey,
@@ -87,7 +76,7 @@ MultiSigScriptHashInput.prototype.getSignatures = function(transaction, privateK
 MultiSigScriptHashInput.prototype.addSignature = function(transaction, signature) {
   $.checkState(!this.isFullySigned(), 'All needed signatures have already been added');
   $.checkArgument(!_.isUndefined(this.publicKeyIndex[signature.publicKey.toString()]),
-                  'Signature has no matching public key');
+    'Signature has no matching public key');
   $.checkState(this.isValidSignature(transaction, signature));
   this.signatures[this.publicKeyIndex[signature.publicKey.toString()]] = signature;
   this._updateScript();
@@ -105,15 +94,13 @@ MultiSigScriptHashInput.prototype._updateScript = function() {
 };
 
 MultiSigScriptHashInput.prototype._createSignatures = function() {
-  return _.map(
-    _.filter(this.signatures, function(signature) { return !_.isUndefined(signature); }),
-    function(signature) {
-      return BufferUtil.concat([
-        signature.signature.toDER(),
-        BufferUtil.integerAsSingleByteBuffer(signature.sigtype)
-      ]);
-    }
-  );
+  const definedSignatures = this.signatures.filter(signature => !_.isUndefined(signature))
+  return definedSignatures.map(
+    signature => BufferUtil.concat([
+      signature.signature.toDER(),
+      BufferUtil.integerAsSingleByteBuffer(signature.sigtype)
+    ])
+  )
 };
 
 MultiSigScriptHashInput.prototype.clearSignatures = function() {
@@ -130,16 +117,12 @@ MultiSigScriptHashInput.prototype.countMissingSignatures = function() {
 };
 
 MultiSigScriptHashInput.prototype.countSignatures = function() {
-  return _.reduce(this.signatures, function(sum, signature) {
-    return sum + (!!signature);
-  }, 0);
+  return this.signatures.reduce((sum, signature) => sum + !!signature, 0);
 };
 
 MultiSigScriptHashInput.prototype.publicKeysWithoutSignature = function() {
   var self = this;
-  return _.filter(this.publicKeys, function(publicKey) {
-    return !(self.signatures[self.publicKeyIndex[publicKey.toString()]]);
-  });
+  return this.publicKeys.filter(publicKey => !(self.signatures[self.publicKeyIndex[publicKey.toString()]]));
 };
 
 MultiSigScriptHashInput.prototype.isValidSignature = function(transaction, signature) {
