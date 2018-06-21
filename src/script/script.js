@@ -108,8 +108,7 @@ Script.fromBuffer = function(buffer) {
 Script.prototype.toBuffer = function() {
   var bw = new BufferWriter();
 
-  for (var i = 0; i < this.chunks.length; i++) {
-    var chunk = this.chunks[i];
+  for (var chunk of this.chunks) {
     var opcodenum = chunk.opcodenum;
     bw.writeUInt8(chunk.opcodenum);
     if (chunk.buf) {
@@ -142,14 +141,14 @@ Script.fromASM = function(str) {
     var opcode = Opcode(token);
     var opcodenum = opcode.toNumber();
 
-    if (_.isUndefined(opcodenum)) {
+    if (opcodenum === undefined) {
       var buf = new Buffer(tokens[i], 'hex');
       script.chunks.push({
         buf: buf,
         len: buf.length,
         opcodenum: buf.length
       });
-      i = i + 1;
+      i += 1;
     } else if (opcodenum === Opcode.OP_PUSHDATA1 ||
       opcodenum === Opcode.OP_PUSHDATA2 ||
       opcodenum === Opcode.OP_PUSHDATA4) {
@@ -158,12 +157,12 @@ Script.fromASM = function(str) {
         len: parseInt(tokens[i + 1]),
         opcodenum: opcodenum
       });
-      i = i + 3;
+      i += 3;
     } else {
       script.chunks.push({
         opcodenum: opcodenum
       });
-      i = i + 1;
+      i += 1;
     }
   }
   return script;
@@ -260,8 +259,7 @@ Script.prototype._chunkToString = function(chunk, type) {
 
 Script.prototype.toASM = function() {
   var str = '';
-  for (var i = 0; i < this.chunks.length; i++) {
-    var chunk = this.chunks[i];
+  for (var chunk of this.chunks) {
     str += this._chunkToString(chunk, 'asm');
   }
 
@@ -270,8 +268,7 @@ Script.prototype.toASM = function() {
 
 Script.prototype.toString = function() {
   var str = '';
-  for (var i = 0; i < this.chunks.length; i++) {
-    var chunk = this.chunks[i];
+  for (var chunk of this.chunks) {
     str += this._chunkToString(chunk);
   }
 
@@ -328,12 +325,12 @@ Script.prototype.isPublicKeyHashIn = function() {
 };
 
 Script.prototype.getPublicKey = function() {
-  $.checkState(this.isPublicKeyOut(), 'Can\'t retrieve PublicKey from a non-PK output');
+  $.checkState(this.isPublicKeyOut(), 'Can\'t retrieve PublicKey from a non-PublicKey output');
   return this.chunks[0].buf;
 };
 
 Script.prototype.getPublicKeyHash = function() {
-  $.checkState(this.isPublicKeyHashOut(), 'Can\'t retrieve PublicKeyHash from a non-PKH output');
+  $.checkState(this.isPublicKeyHashOut(), 'Can\'t retrieve PublicKeyHash from a non-PublicKeyHash output');
   return this.chunks[2].buf;
 };
 
@@ -463,11 +460,7 @@ Script.prototype.isDataOut = function() {
  */
 Script.prototype.getData = function() {
   if (this.isDataOut() || this.isScriptHashOut()) {
-    if (_.isUndefined(this.chunks[1])) {
-      return new Buffer(0);
-    } else {
-      return new Buffer(this.chunks[1].buf);
-    }
+    return new Buffer(this.chunks[1] === undefined ? 0 : this.chunks[1].buf);
   }
   if (this.isPublicKeyHashOut()) {
     return new Buffer(this.chunks[2].buf);
@@ -480,9 +473,7 @@ Script.prototype.getData = function() {
  * opcodes or small int opcodes (OP_0, OP_1, ..., OP_16)
  */
 Script.prototype.isPushOnly = function() {
-  return _.every(this.chunks, function(chunk) {
-    return chunk.opcodenum <= Opcode.OP_16;
-  });
+  return this.chunks.every(chunk => chunk.opcodenum <= Opcode.OP_16);
 };
 
 
@@ -674,13 +665,7 @@ Script.prototype._addBuffer = function(buf, prepend) {
 };
 
 Script.prototype.removeCodeseparators = function() {
-  var chunks = [];
-  for (var i = 0; i < this.chunks.length; i++) {
-    if (this.chunks[i].opcodenum !== Opcode.OP_CODESEPARATOR) {
-      chunks.push(this.chunks[i]);
-    }
-  }
-  this.chunks = chunks;
+  this.chunks = this.chunks.filter(chunk => chunk.opcodenum !== Opcode.OP_CODESEPARATOR)
   return this;
 };
 
@@ -701,16 +686,15 @@ Script.buildMultisigOut = function(publicKeys, threshold, opts) {
   opts = opts || {};
   var script = new Script();
   script.add(Opcode.smallInt(threshold));
-  publicKeys = _.map(publicKeys, PublicKey);
+  publicKeys = publicKeys.map(PublicKey);
   var sorted = publicKeys;
   if (!opts.noSorting) {
     sorted = _.sortBy(publicKeys, function(publicKey) {
       return publicKey.toString('hex');
     });
   }
-  for (var i = 0; i < sorted.length; i++) {
-    var publicKey = sorted[i];
-    script.add(publicKey.toBuffer());
+  for (var pKey of sorted) {
+    script.add(pKey.toBuffer());
   }
   script.add(Opcode.smallInt(publicKeys.length));
   script.add(Opcode.OP_CHECKMULTISIG);
@@ -736,7 +720,7 @@ Script.buildMultisigIn = function(pubkeys, threshold, signatures, opts) {
   opts = opts || {};
   var s = new Script();
   s.add(Opcode.OP_0);
-  _.each(signatures, function(signature) {
+  signatures.forEach(signature => {
     $.checkArgument(BufferUtil.isBuffer(signature), 'Signatures must be an array of Buffers');
     // TODO: allow signatures to be an array of Signature objects
     s.add(signature);
@@ -763,7 +747,7 @@ Script.buildP2SHMultisigIn = function(pubkeys, threshold, signatures, opts) {
   opts = opts || {};
   var s = new Script();
   s.add(Opcode.OP_0);
-  _.each(signatures, function(signature) {
+  signatures.forEach(signature => {
     $.checkArgument(BufferUtil.isBuffer(signature), 'Signatures must be an array of Buffers');
     // TODO: allow signatures to be an array of Signature objects
     s.add(signature);
@@ -833,8 +817,8 @@ Script.buildDataOut = function(data, encoding) {
 Script.buildScriptHashOut = function(script) {
   $.checkArgument(script instanceof Script ||
     (script instanceof Address && script.isPayToScriptHash()));
-  var s = new Script();
-  s.add(Opcode.OP_HASH160)
+  var s = new Script()
+    .add(Opcode.OP_HASH160)
     .add(script instanceof Address ? script.hashBuffer : Hash.sha256ripemd160(script.toBuffer()))
     .add(Opcode.OP_EQUAL);
 
@@ -1065,7 +1049,7 @@ Script.prototype.getSignatureOperationsCount = function(accurate) {
   var self = this;
   var n = 0;
   var lastOpcode = Opcode.OP_INVALIDOPCODE;
-  _.each(self.chunks, function getChunk(chunk) {
+  self.chunks.forEach(chunk => {
     var opcode = chunk.opcodenum;
     if (opcode == Opcode.OP_CHECKSIG || opcode == Opcode.OP_CHECKSIGVERIFY) {
       n++;

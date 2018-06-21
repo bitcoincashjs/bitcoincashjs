@@ -570,7 +570,6 @@ Transaction.prototype.from = function(utxo, pubkeys, threshold) {
  * @return Transaction this, for chaining
  */
 Transaction.prototype.addInput = function(input, outputScript, satoshis) {
-  console.log(outputScript, satoshis)
   $.checkArgumentType(input, Input, 'Trying to add input of type other than input');
   if (!input.output && (outputScript === undefined || satoshis === undefined)) {
     throw new errors.Transaction.NeedMoreInfo('Need information about the UTXO script and satoshis');
