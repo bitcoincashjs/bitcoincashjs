@@ -27,9 +27,7 @@ function MultiSigInput(input, pubkeys, threshold, signatures) {
   $.checkState(Script.buildMultisigOut(this.publicKeys, threshold).equals(this.output.script),
     'Provided public keys don\'t match to the provided output script');
   this.publicKeyIndex = {};
-  _.each(this.publicKeys, function(publicKey, index) {
-    self.publicKeyIndex[publicKey.toString()] = index;
-  });
+  this.publicKeys.forEach((publicKey, index)=> self.publicKeyIndex[publicKey.toString()] = index);
   this.threshold = threshold;
   // Empty array of signatures
   this.signatures = signatures ? this._deserializeSignatures(signatures) : new Array(this.publicKeys.length);
@@ -45,30 +43,20 @@ MultiSigInput.prototype.toObject = function() {
 };
 
 MultiSigInput.prototype._deserializeSignatures = function(signatures) {
-  return _.map(signatures, function(signature) {
-    if (!signature) {
-      return undefined;
-    }
-    return new TransactionSignature(signature);
-  });
+  return signatures.map(signature => signature ? new TransactionSignature(signature) : undefined);
 };
 
 MultiSigInput.prototype._serializeSignatures = function() {
-  return _.map(this.signatures, function(signature) {
-    if (!signature) {
-      return undefined;
-    }
-    return signature.toObject();
-  });
+  return this.signatures.map(signature => signature ? signature.toObject() : undefined);
 };
 
 MultiSigInput.prototype.getSignatures = function(transaction, privateKey, index, sigtype) {
-  $.checkState(this.output instanceof Output);
+  $.checkState(this.output instanceof Output, 'Malformed output found when signing transaction');
   sigtype = sigtype || (Signature.SIGHASH_ALL |  Signature.SIGHASH_FORKID);
 
   var self = this;
   var results = [];
-  _.each(this.publicKeys, function(publicKey) {
+  this.publicKeys.forEach(publicKey => {
     if (publicKey.toString() === privateKey.publicKey.toString()) {
       results.push(new TransactionSignature({
         publicKey: privateKey.publicKey,
@@ -86,7 +74,7 @@ MultiSigInput.prototype.getSignatures = function(transaction, privateKey, index,
 
 MultiSigInput.prototype.addSignature = function(transaction, signature) {
   $.checkState(!this.isFullySigned(), 'All needed signatures have already been added');
-  $.checkArgument(!_.isUndefined(this.publicKeyIndex[signature.publicKey.toString()]),
+  $.checkArgument(this.publicKeyIndex[signature.publicKey.toString()] !== undefined,
     'Signature has no matching public key');
   $.checkState(this.isValidSignature(transaction, signature));
   this.signatures[this.publicKeyIndex[signature.publicKey.toString()]] = signature;
@@ -104,15 +92,11 @@ MultiSigInput.prototype._updateScript = function() {
 };
 
 MultiSigInput.prototype._createSignatures = function() {
-  return _.map(
-    _.filter(this.signatures, function(signature) { return !_.isUndefined(signature); }),
-    function(signature) {
-      return BufferUtil.concat([
-        signature.signature.toDER(),
-        BufferUtil.integerAsSingleByteBuffer(signature.sigtype)
-      ]);
-    }
-  );
+  var filteredSignatures = this.signatures.filter(signature => signature !== undefined)
+  return filteredSignatures.map(signature => BufferUtil.concat([
+    signature.signature.toDER(),
+    BufferUtil.integerAsSingleByteBuffer(signature.sigtype)
+  ]))
 };
 
 MultiSigInput.prototype.clearSignatures = function() {
@@ -129,16 +113,12 @@ MultiSigInput.prototype.countMissingSignatures = function() {
 };
 
 MultiSigInput.prototype.countSignatures = function() {
-  return _.reduce(this.signatures, function(sum, signature) {
-    return sum + (!!signature);
-  }, 0);
+  return this.signatures.reduce((sum, signature) => sum + !!signature, 0);
 };
 
 MultiSigInput.prototype.publicKeysWithoutSignature = function() {
   var self = this;
-  return _.filter(this.publicKeys, function(publicKey) {
-    return !(self.signatures[self.publicKeyIndex[publicKey.toString()]]);
-  });
+  return this.publicKeys.filter(publicKey => !self.signatures[self.publicKeyIndex[publicKey.toString()]]);
 };
 
 MultiSigInput.prototype.isValidSignature = function(transaction, signature) {

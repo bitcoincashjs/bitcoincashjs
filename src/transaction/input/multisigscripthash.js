@@ -53,7 +53,7 @@ MultiSigScriptHashInput.prototype._serializeSignatures = function() {
 };
 
 MultiSigScriptHashInput.prototype.getSignatures = function(transaction, privateKey, index, sigtype) {
-  $.checkState(this.output instanceof Output);
+  $.checkState(this.output instanceof Output, 'Malformed output found when signing transaction');
   sigtype = sigtype || (Signature.SIGHASH_ALL |  Signature.SIGHASH_FORKID);
 
   var self = this;
