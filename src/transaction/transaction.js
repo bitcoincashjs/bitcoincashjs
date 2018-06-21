@@ -522,26 +522,31 @@ Transaction.prototype.from = function(utxo, pubkeys, threshold) {
   var utxoExists = this.inputs.some(
     input => input.prevTxId.toString('hex') === utxo.txId && input.outputIndex === utxo.outputIndex
   );
+  var clazz
+  var utxo = new UnspentOutput(utxo)
   if (utxoExists) {
     return this
+  // P2SH case
   } else if (pubkeys && threshold) {
-    return this._fromMultisigUtxo(utxo, pubkeys, threshold);
+    $.checkArgument(threshold <= pubkeys.length, 'Number of signatures must be greater than the number of public keys');
+    if (utxo.script.isMultisigOut()) {
+      clazz = MultiSigInput;
+    } else if (utxo.script.isScriptHashOut()) {
+      clazz = MultiSigScriptHashInput;
+    } else {
+      throw new Error("@TODO");
+    }
+  // non P2SH case
   } else {
-    return this._fromNonP2SH(utxo);
+    if (utxo.script.isPublicKeyHashOut()) {
+      clazz = PublicKeyHashInput;
+    } else if (utxo.script.isPublicKeyOut()) {
+      clazz = PublicKeyInput;
+    } else {
+      clazz = Input;
+    }
   }
-};
-
-Transaction.prototype._fromNonP2SH = function(utxo) {
-  var clazz;
-  utxo = new UnspentOutput(utxo);
-  if (utxo.script.isPublicKeyHashOut()) {
-    clazz = PublicKeyHashInput;
-  } else if (utxo.script.isPublicKeyOut()) {
-    clazz = PublicKeyInput;
-  } else {
-    clazz = Input;
-  }
-  this.addInput(new clazz({
+  var input = new clazz({
     output: new Output({
       script: utxo.script,
       satoshis: utxo.satoshis
@@ -549,31 +554,8 @@ Transaction.prototype._fromNonP2SH = function(utxo) {
     prevTxId: utxo.txId,
     outputIndex: utxo.outputIndex,
     script: Script.empty()
-  }));
-  return this
-};
-
-Transaction.prototype._fromMultisigUtxo = function(utxo, pubkeys, threshold) {
-  $.checkArgument(threshold <= pubkeys.length,
-    'Number of required signatures must be greater than the number of public keys');
-  var clazz;
-  utxo = new UnspentOutput(utxo);
-  if (utxo.script.isMultisigOut()) {
-    clazz = MultiSigInput;
-  } else if (utxo.script.isScriptHashOut()) {
-    clazz = MultiSigScriptHashInput;
-  } else {
-    throw new Error("@TODO");
-  }
-  this.addInput(new clazz({
-    output: new Output({
-      script: utxo.script,
-      satoshis: utxo.satoshis
-    }),
-    prevTxId: utxo.txId,
-    outputIndex: utxo.outputIndex,
-    script: Script.empty()
-  }, pubkeys, threshold));
+  }, pubkeys, threshold)
+  this.addInput(input);
   return this
 };
 
@@ -588,6 +570,7 @@ Transaction.prototype._fromMultisigUtxo = function(utxo, pubkeys, threshold) {
  * @return Transaction this, for chaining
  */
 Transaction.prototype.addInput = function(input, outputScript, satoshis) {
+  console.log(outputScript, satoshis)
   $.checkArgumentType(input, Input, 'Trying to add input of type other than input');
   if (!input.output && (outputScript === undefined || satoshis === undefined)) {
     throw new errors.Transaction.NeedMoreInfo('Need information about the UTXO script and satoshis');
