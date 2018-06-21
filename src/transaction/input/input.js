@@ -1,6 +1,5 @@
 'use strict';
 
-var _ = require('lodash');
 var $ = require('../../util/preconditions');
 var errors = require('../../errors');
 var BufferWriter = require('../../encoding/bufferwriter');
@@ -46,14 +45,14 @@ Object.defineProperty(Input.prototype, 'script', {
 });
 
 Input.fromObject = function(obj) {
-  $.checkArgument(_.isObject(obj));
+  $.checkArgument(obj !== null && typeof obj === 'object');
   var input = new Input();
   return input._fromObject(obj);
 };
 
 Input.prototype._fromObject = function(params) {
   var prevTxId;
-  if (_.isString(params.prevTxId) && JSUtil.isHexa(params.prevTxId)) {
+  if (typeof params.prevTxId === 'string' && JSUtil.isHexa(params.prevTxId)) {
     prevTxId = new buffer.Buffer(params.prevTxId, 'hex');
   } else {
     prevTxId = params.prevTxId;
@@ -121,7 +120,7 @@ Input.prototype.setScript = function(script) {
   } else if (JSUtil.isHexa(script)) {
     // hex string script
     this._scriptBuffer = new buffer.Buffer(script, 'hex');
-  } else if (_.isString(script)) {
+  } else if (typeof script === 'string') {
     // human readable string script
     this._script = new Script(script);
     this._script._isInput = true;
