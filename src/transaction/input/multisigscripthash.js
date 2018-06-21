@@ -22,7 +22,7 @@ function MultiSigScriptHashInput(input, pubkeys, threshold, signatures) {
   pubkeys = pubkeys || input.publicKeys;
   threshold = threshold || input.threshold;
   signatures = signatures || input.signatures;
-  this.publicKeys = _.sortBy(pubkeys, function(publicKey) { return publicKey.toString('hex'); });
+  this.publicKeys = _.sortBy(pubkeys, publicKey => publicKey.toString('hex'));
   this.redeemScript = Script.buildMultisigOut(this.publicKeys, threshold);
   $.checkState(Script.buildScriptHashOut(this.redeemScript).equals(this.output.script),
     'Provided public keys don\'t hash to the provided output');
@@ -75,7 +75,7 @@ MultiSigScriptHashInput.prototype.getSignatures = function(transaction, privateK
 
 MultiSigScriptHashInput.prototype.addSignature = function(transaction, signature) {
   $.checkState(!this.isFullySigned(), 'All needed signatures have already been added');
-  $.checkArgument(!_.isUndefined(this.publicKeyIndex[signature.publicKey.toString()]),
+  $.checkArgument(this.publicKeyIndex[signature.publicKey.toString()] !== undefined,
     'Signature has no matching public key');
   $.checkState(this.isValidSignature(transaction, signature));
   this.signatures[this.publicKeyIndex[signature.publicKey.toString()]] = signature;
@@ -94,7 +94,7 @@ MultiSigScriptHashInput.prototype._updateScript = function() {
 };
 
 MultiSigScriptHashInput.prototype._createSignatures = function() {
-  const definedSignatures = this.signatures.filter(signature => !_.isUndefined(signature))
+  const definedSignatures = this.signatures.filter(signature => signature !== undefined)
   return definedSignatures.map(
     signature => BufferUtil.concat([
       signature.signature.toDER(),

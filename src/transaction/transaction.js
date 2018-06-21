@@ -94,8 +94,7 @@ Transaction.MAXIMUM_EXTRA_SIZE = 4 + 9 + 9 + 4;
  * @return {Transaction}
  */
 Transaction.shallowCopy = function(transaction) {
-  var copy = new Transaction(transaction.toBuffer());
-  return copy;
+  return new Transaction(transaction.toBuffer());
 };
 
 var hashProperty = {
