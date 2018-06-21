@@ -61,10 +61,10 @@ Input.prototype._fromObject = function(params) {
   this.output = params.output ?
     (params.output instanceof Output ? params.output : new Output(params.output)) : undefined;
   this.prevTxId = prevTxId || params.txidbuf;
-  this.outputIndex = _.isUndefined(params.outputIndex) ? params.txoutnum : params.outputIndex;
-  this.sequenceNumber = _.isUndefined(params.sequenceNumber) ?
-    (_.isUndefined(params.seqnum) ? DEFAULT_SEQNUMBER : params.seqnum) : params.sequenceNumber;
-  if (_.isUndefined(params.script) && _.isUndefined(params.scriptBuffer)) {
+  this.outputIndex = params.outputIndex === undefined ? params.txoutnum : params.outputIndex;
+  this.sequenceNumber = (params.sequenceNumber === undefined) ?
+    ((params.seqnum === undefined) ? DEFAULT_SEQNUMBER : params.seqnum) : params.sequenceNumber;
+  if ((params.script === undefined) && (params.scriptBuffer === undefined)) {
     throw new errors.Transaction.Input.MissingScript();
   }
   this.setScript(params.scriptBuffer || params.script);
