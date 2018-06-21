@@ -526,18 +526,17 @@ Transaction.prototype.from = function(utxo, pubkeys, threshold) {
     return this;
   }
   // TODO: Maybe prevTxId should be a string? Or defined as read only property?
-  var exists = this.inputs.some(
+  // Check if the utxo has already been added as an input
+  var utxoExists = this.inputs.some(
     input => input.prevTxId.toString('hex') === utxo.txId && input.outputIndex === utxo.outputIndex
   );
-  if (exists) {
-    return this;
-  }
-  if (pubkeys && threshold) {
-    this._fromMultisigUtxo(utxo, pubkeys, threshold);
+  if (utxoExists) {
+    return this
+  } else if (pubkeys && threshold) {
+    return this._fromMultisigUtxo(utxo, pubkeys, threshold);
   } else {
-    this._fromNonP2SH(utxo);
+    return this._fromNonP2SH(utxo);
   }
-  return this;
 };
 
 Transaction.prototype._fromNonP2SH = function(utxo) {
@@ -559,6 +558,7 @@ Transaction.prototype._fromNonP2SH = function(utxo) {
     outputIndex: utxo.outputIndex,
     script: Script.empty()
   }));
+  return this
 };
 
 Transaction.prototype._fromMultisigUtxo = function(utxo, pubkeys, threshold) {
@@ -582,6 +582,7 @@ Transaction.prototype._fromMultisigUtxo = function(utxo, pubkeys, threshold) {
     outputIndex: utxo.outputIndex,
     script: Script.empty()
   }, pubkeys, threshold));
+  return this
 };
 
 /**
