@@ -172,13 +172,7 @@ Transaction.prototype.checkedSerialize = function(opts) {
 };
 
 Transaction.prototype.invalidSatoshis = function() {
-  var invalid = false;
-  for (var i = 0; i < this.outputs.length; i++) {
-    if (this.outputs[i].invalidSatoshis()) {
-      invalid = true;
-    }
-  }
-  return invalid;
+  return this.outputs.some(output => output.invalidSatoshis())
 };
 
 /**
@@ -292,7 +286,7 @@ Transaction.prototype.fromBuffer = function(buffer) {
 };
 
 Transaction.prototype.fromBufferReader = function(reader) {
-  $.checkArgument(!reader.finished(), 'No transaction data received');
+  $.checkArgument(!reader.finished(), 'No transaction data received when creating transaction from buffer');
   var i, sizeTxIns, sizeTxOuts;
 
   this.version = reader.readInt32LE();
@@ -310,10 +304,8 @@ Transaction.prototype.fromBufferReader = function(reader) {
 };
 
 Transaction.prototype.toObject = Transaction.prototype.toJSON = function toObject() {
-  var inputs = [];
-  this.inputs.forEach(input => inputs.push(input.toObject()));
-  var outputs = [];
-  this.outputs.forEach(output => outputs.push(output.toObject()));
+  var inputs = this.inputs.map(input => input.toObject());
+  var outputs = this.outputs.map(output => output.toObject());
   var obj = {
     hash: this.hash,
     version: this.version,
@@ -380,14 +372,14 @@ Transaction.prototype.fromObject = function fromObject(arg) {
 };
 
 Transaction.prototype._checkConsistency = function(arg) {
-  if (!_.isUndefined(this._changeIndex)) {
-    $.checkState(this._changeScript);
-    $.checkState(this.outputs[this._changeIndex]);
+  if (this._changeIndex !== undefined) {
+    $.checkState(this._changeScript, 'Change script missing');
+    $.checkState(this.outputs[this._changeIndex], 'Change output missing');
     $.checkState(this.outputs[this._changeIndex].script.toString() ===
-      this._changeScript.toString());
+      this._changeScript.toString(), 'Script in argument does not match script in transaction');
   }
   if (arg && arg.hash) {
-    $.checkState(arg.hash === this.hash, 'Hash in object does not match transaction hash');
+    $.checkState(arg.hash === this.hash, 'Hash in argument does not match transaction hash');
   }
 };
 
@@ -407,9 +399,9 @@ Transaction.prototype.lockUntilDate = function(time) {
     time = time.getTime() / 1000;
   }
 
-  for (var i = 0; i < this.inputs.length; i++) {
-    if (this.inputs[i].sequenceNumber === Input.DEFAULT_SEQNUMBER){
-      this.inputs[i].sequenceNumber = Input.DEFAULT_LOCKTIME_SEQNUMBER;
+  for (var input of this.inputs) {
+    if (input.sequenceNumber === Input.DEFAULT_SEQNUMBER){
+      input.sequenceNumber = Input.DEFAULT_LOCKTIME_SEQNUMBER;
     }
   }
 
@@ -433,9 +425,9 @@ Transaction.prototype.lockUntilBlockHeight = function(height) {
     throw new errors.Transaction.NLockTimeOutOfRange();
   }
 
-  for (var i = 0; i < this.inputs.length; i++) {
-    if (this.inputs[i].sequenceNumber === Input.DEFAULT_SEQNUMBER){
-      this.inputs[i].sequenceNumber = Input.DEFAULT_LOCKTIME_SEQNUMBER;
+  for (var input of this.inputs) {
+    if (input.sequenceNumber === Input.DEFAULT_SEQNUMBER){
+      input.sequenceNumber = Input.DEFAULT_LOCKTIME_SEQNUMBER;
     }
   }
   this.nLockTime = height;
@@ -460,7 +452,7 @@ Transaction.prototype.getLockTime = function() {
 };
 
 Transaction.prototype.fromString = function(string) {
-  this.fromBuffer(new buffer.Buffer(string, 'hex'));
+  this.fromBuffer(new Buffer(string, 'hex'));
 };
 
 Transaction.prototype._newTransaction = function() {
@@ -596,13 +588,13 @@ Transaction.prototype._fromMultisigUtxo = function(utxo, pubkeys, threshold) {
  * @return Transaction this, for chaining
  */
 Transaction.prototype.addInput = function(input, outputScript, satoshis) {
-  $.checkArgumentType(input, Input, 'input');
-  if (!input.output && (_.isUndefined(outputScript) || _.isUndefined(satoshis))) {
+  $.checkArgumentType(input, Input, 'Trying to add input of type other than input');
+  if (!input.output && (outputScript === undefined || satoshis === undefined)) {
     throw new errors.Transaction.NeedMoreInfo('Need information about the UTXO script and satoshis');
   }
-  if (!input.output && outputScript && !_.isUndefined(satoshis)) {
+  if (!input.output && outputScript && satoshis !== undefined) {
     outputScript = outputScript instanceof Script ? outputScript : new Script(outputScript);
-    $.checkArgumentType(satoshis, 'number', 'satoshis');
+    $.checkArgumentType(satoshis, 'number', 'Satoshis must be a number when adding input');
     input.output = new Output({
       script: outputScript,
       satoshis: satoshis
@@ -619,7 +611,7 @@ Transaction.prototype.addInput = function(input, outputScript, satoshis) {
  * @return Transaction this, for chaining
  */
 Transaction.prototype.uncheckedAddInput = function(input) {
-  $.checkArgumentType(input, Input, 'input');
+  $.checkArgumentType(input, Input, 'Trying to add input of type other than input');
   this.inputs.push(input);
   this._inputAmount = undefined;
   this._updateChangeOutput();
@@ -644,7 +636,7 @@ Transaction.prototype.hasAllUtxoInfo = function() {
  * @return {Transaction} this, for chaining
  */
 Transaction.prototype.fee = function(amount) {
-  $.checkArgument(_.isNumber(amount), 'amount must be a number');
+  $.checkArgument(_.isNumber(amount), 'Amount must be a number');
   this._fee = amount;
   this._updateChangeOutput();
   return this;
@@ -659,7 +651,7 @@ Transaction.prototype.fee = function(amount) {
  * @return {Transaction} this, for chaining
  */
 Transaction.prototype.feePerKb = function(amount) {
-  $.checkArgument(_.isNumber(amount), 'amount must be a number');
+  $.checkArgument(_.isNumber(amount), 'Amount must be a number');
   this._feePerKb = amount;
   this._updateChangeOutput();
   return this;
@@ -677,7 +669,7 @@ Transaction.prototype.feePerKb = function(amount) {
  * @return {Transaction} this, for chaining
  */
 Transaction.prototype.change = function(address) {
-  $.checkArgument(address, 'address is required');
+  $.checkArgument(address, 'Address is required');
   this._changeScript = Script.fromAddress(address);
   this._updateChangeOutput();
   return this;
@@ -688,7 +680,7 @@ Transaction.prototype.change = function(address) {
  * @return {Output} change output, if it exists
  */
 Transaction.prototype.getChangeOutput = function() {
-  if (!_.isUndefined(this._changeIndex)) {
+  if (this._changeIndex !== undefined) {
     return this.outputs[this._changeIndex];
   }
   return null;
@@ -754,7 +746,7 @@ Transaction.prototype.addData = function(value) {
  * @return {Transaction} this, for chaining
  */
 Transaction.prototype.addOutput = function(output) {
-  $.checkArgumentType(output, Output, 'output');
+  $.checkArgumentType(output, Output, 'Output needs to be of type output');
   this._addOutput(output);
   this._updateChangeOutput();
   return this;
@@ -788,7 +780,7 @@ Transaction.prototype._addOutput = function(output) {
  * @return {Number} the transaction total output amount
  */
 Transaction.prototype._getOutputAmount = function() {
-  if (_.isUndefined(this._outputAmount)) {
+  if (this._outputAmount === undefined) {
     var self = this;
     this._outputAmount = 0;
     this.outputs.forEach(output => self._outputAmount += output.satoshis);
@@ -883,9 +875,7 @@ Transaction.prototype._getUnspentValue = function() {
 };
 
 Transaction.prototype._clearSignatures = function() {
-  _.each(this.inputs, function(input) {
-    input.clearSignatures();
-  });
+  this.inputs.forEach(input => input.clearSignatures());
 };
 
 Transaction._estimateFee = function(size, amountAvailable, feePerKb) {
@@ -978,7 +968,7 @@ Transaction.prototype.sortInputs = function(sortingFunction) {
 
 Transaction.prototype._newOutputOrder = function(newOutputs) {
   var isInvalidSorting = (this.outputs.length !== newOutputs.length ||
-                          _.difference(this.outputs, newOutputs).length !== 0);
+    _.difference(this.outputs, newOutputs).length !== 0);
   if (isInvalidSorting) {
     throw new errors.Transaction.InvalidSorting();
   }
@@ -1023,13 +1013,14 @@ Transaction.prototype.removeInput = function(txId, outputIndex) {
  * @return {Transaction} this, for chaining
  */
 Transaction.prototype.sign = function(privateKey, sigtype) {
-  $.checkState(this.hasAllUtxoInfo());
+  $.checkState(this.hasAllUtxoInfo(), 'Cannot sign transaction because some input is not defined');
   var self = this;
   if (Array.isArray(privateKey)) {
     privateKey.forEach(privateKey => self.sign(privateKey, sigtype));
     return this;
   }
-  this.getSignatures(privateKey, sigtype).forEach(signature => self.applySignature(signature));
+  var signatures = this.getSignatures(privateKey, sigtype)
+  signatures.forEach(signature => self.applySignature(signature));
   return this;
 };
 
@@ -1109,34 +1100,30 @@ Transaction.prototype.verify = function() {
 
   // Check for negative or overflow output values
   var valueoutbn = new BN(0);
-  for (var i = 0; i < this.outputs.length; i++) {
-    var txout = this.outputs[i];
-
-    if (txout.invalidSatoshis()) {
-      return 'transaction txout ' + i + ' satoshis is invalid';
+  for (var output of this.outputs) {
+    if (output.invalidSatoshis()) {
+      return 'Transaction output contains invalid amount';
     }
-    if (txout._satoshisBN.gt(new BN(Transaction.MAX_MONEY, 10))) {
-      return 'transaction txout ' + i + ' greater than MAX_MONEY';
+    if (output._satoshisBN.gt(new BN(Transaction.MAX_MONEY, 10))) {
+      return 'Transaction output contains too high satoshi amount';
     }
-    valueoutbn = valueoutbn.add(txout._satoshisBN);
+    valueoutbn = valueoutbn.add(output._satoshisBN);
     if (valueoutbn.gt(new BN(Transaction.MAX_MONEY))) {
-      return 'transaction txout ' + i + ' total output greater than MAX_MONEY';
+      return 'Transaction output contains too high satoshi amount';
     }
   }
 
   // Size limits
   if (this.toBuffer().length > MAX_BLOCK_SIZE) {
-    return 'transaction over the maximum block size';
+    return 'Transaction over the maximum block size';
   }
 
   // Check for duplicate inputs
   var txinmap = {};
-  for (i = 0; i < this.inputs.length; i++) {
-    var txin = this.inputs[i];
-
-    var inputid = txin.prevTxId + ':' + txin.outputIndex;
-    if (!_.isUndefined(txinmap[inputid])) {
-      return 'transaction input ' + i + ' duplicate input';
+  for (var input of this.inputs) {
+    var inputid = input.prevTxId + ':' + input.outputIndex;
+    if (txinmap[inputid] !== undefined) {
+      return 'Transaction contains duplicate input';
     }
     txinmap[inputid] = true;
   }
@@ -1145,12 +1132,12 @@ Transaction.prototype.verify = function() {
   if (isCoinbase) {
     var buf = this.inputs[0]._scriptBuffer;
     if (buf.length < 2 || buf.length > 100) {
-      return 'coinbase transaction script size invalid';
+      return 'Coinbase transaction script size invalid';
     }
   } else {
-    for (i = 0; i < this.inputs.length; i++) {
-      if (this.inputs[i].isNull()) {
-        return 'transaction input ' + i + ' has null input';
+    for (var input of this.inputs) {
+      if (input.isNull()) {
+        return 'Transaction has null input';
       }
     }
   }
@@ -1169,13 +1156,7 @@ Transaction.prototype.isCoinbase = function() {
  * transaction that provides a sufficiently higher fee (RBF).
  */
 Transaction.prototype.isRBF = function() {
-  for (var i = 0; i < this.inputs.length; i++) {
-    var input = this.inputs[i];
-    if (input.sequenceNumber < Input.MAXINT - 1) {
-      return true;
-    }
-  }
-  return false;
+  return this.inputs.some(input => input.sequenceNumber < Input.MAXINT - 1)
 };
 
 /**
@@ -1185,8 +1166,7 @@ Transaction.prototype.isRBF = function() {
  * already enable RBF.
  */
 Transaction.prototype.enableRBF = function() {
-  for (var i = 0; i < this.inputs.length; i++) {
-    var input = this.inputs[i];
+  for (var input of this.inputs) {
     if (input.sequenceNumber >= Input.MAXINT - 1) {
       input.sequenceNumber = Input.DEFAULT_RBF_SEQNUMBER;
     }
