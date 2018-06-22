@@ -20,17 +20,17 @@ function MultiSigScriptHashInput(input, pubkeys, threshold, signatures) {
   Input.apply(this, arguments);
   var self = this;
   pubkeys = pubkeys || input.publicKeys;
-  threshold = threshold || input.threshold;
+  this.threshold = threshold || input.threshold;
   signatures = signatures || input.signatures;
   this.publicKeys = _.sortBy(pubkeys, publicKey => publicKey.toString('hex'));
-  this.redeemScript = Script.buildMultisigOut(this.publicKeys, threshold);
+  this.redeemScript = Script.buildMultisigOut(this.publicKeys, this.threshold);
   $.checkState(Script.buildScriptHashOut(this.redeemScript).equals(this.output.script),
-    'Provided public keys don\'t hash to the provided output');
+    'Provided public keys don\'t hash to the provided output'
+  );
   this.publicKeyIndex = {};
-  this.publicKeys.forEach((publicKey, index) => {
-    self.publicKeyIndex[publicKey.toString()] = index;
-  });
-  this.threshold = threshold;
+  this.publicKeys.forEach((publicKey, index) =>
+    self.publicKeyIndex[publicKey.toString()] = index
+  );
   // Empty array of signatures
   this.signatures = signatures ? this._deserializeSignatures(signatures) : new Array(this.publicKeys.length);
 }
@@ -56,28 +56,27 @@ MultiSigScriptHashInput.prototype.getSignatures = function(transaction, privateK
   $.checkState(this.output instanceof Output, 'Malformed output found when signing transaction');
   sigtype = sigtype || (Signature.SIGHASH_ALL |  Signature.SIGHASH_FORKID);
 
-  var self = this;
-  var results = [];
-  this.publicKeys.forEach(publicKey => {
-    if (publicKey.toString() === privateKey.publicKey.toString()) {
-      results.push(new TransactionSignature({
-        publicKey: privateKey.publicKey,
-        prevTxId: self.prevTxId,
-        outputIndex: self.outputIndex,
-        inputIndex: index,
-        signature: Sighash.sign(transaction, privateKey, sigtype, index, self.redeemScript, self.output.satoshisBN),
-        sigtype: sigtype
-      }));
-    }
-  });
-  return results;
+  var publicKeysForPrivateKey = this.publicKeys.filter(publicKey => publicKey.toString() === privateKey.publicKey.toString())
+  return publicKeysForPrivateKey.map(publicKey => new TransactionSignature({
+    publicKey: privateKey.publicKey,
+    prevTxId: this.prevTxId,
+    outputIndex: this.outputIndex,
+    inputIndex: index,
+    signature: Sighash.sign(transaction, privateKey, sigtype, index, this.redeemScript, this.output.satoshisBN),
+    sigtype: sigtype
+  }))
 };
 
 MultiSigScriptHashInput.prototype.addSignature = function(transaction, signature) {
-  $.checkState(!this.isFullySigned(), 'All needed signatures have already been added');
+  $.checkState(!this.isFullySigned(),
+    'All needed signatures have already been added'
+  );
   $.checkArgument(this.publicKeyIndex[signature.publicKey.toString()] !== undefined,
-    'Signature has no matching public key');
-  $.checkState(this.isValidSignature(transaction, signature));
+    'Signature has no matching public key'
+  );
+  $.checkState(this.isValidSignature(transaction, signature),
+    'Signature invalid'
+  );
   this.signatures[this.publicKeyIndex[signature.publicKey.toString()]] = signature;
   this._updateScript();
   return this;
@@ -121,20 +120,19 @@ MultiSigScriptHashInput.prototype.countSignatures = function() {
 };
 
 MultiSigScriptHashInput.prototype.publicKeysWithoutSignature = function() {
-  var self = this;
-  return this.publicKeys.filter(publicKey => !(self.signatures[self.publicKeyIndex[publicKey.toString()]]));
+  return this.publicKeys.filter(publicKey => !(this.signatures[this.publicKeyIndex[publicKey.toString()]]));
 };
 
 MultiSigScriptHashInput.prototype.isValidSignature = function(transaction, signature) {
   // FIXME: Refactor signature so this is not necessary
   signature.signature.nhashtype = signature.sigtype;
   return Sighash.verify(
-      transaction,
-      signature.signature,
-      signature.publicKey,
-      signature.inputIndex,
-      this.redeemScript,
-      this.output.satoshisBN
+    transaction,
+    signature.signature,
+    signature.publicKey,
+    signature.inputIndex,
+    this.redeemScript,
+    this.output.satoshisBN
   );
 };
 

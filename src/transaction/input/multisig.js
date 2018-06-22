@@ -2,7 +2,6 @@
 
 var _ = require('lodash');
 var inherits = require('inherits');
-var Transaction = require('../transaction');
 var Input = require('./input');
 var Output = require('../output');
 var $ = require('../../util/preconditions');
@@ -21,14 +20,16 @@ function MultiSigInput(input, pubkeys, threshold, signatures) {
   Input.apply(this, arguments);
   var self = this;
   pubkeys = pubkeys || input.publicKeys;
-  threshold = threshold || input.threshold;
+  this.threshold = threshold || input.threshold;
   signatures = signatures || input.signatures;
-  this.publicKeys = _.sortBy(pubkeys, function(publicKey) { return publicKey.toString('hex'); });
-  $.checkState(Script.buildMultisigOut(this.publicKeys, threshold).equals(this.output.script),
-    'Provided public keys don\'t match to the provided output script');
+  this.publicKeys = _.sortBy(pubkeys, publicKey => publicKey.toString('hex'));
+  $.checkState(Script.buildMultisigOut(this.publicKeys, this.threshold).equals(this.output.script),
+    'Provided public keys don\'t match to the provided output script'
+  );
   this.publicKeyIndex = {};
-  this.publicKeys.forEach((publicKey, index)=> self.publicKeyIndex[publicKey.toString()] = index);
-  this.threshold = threshold;
+  this.publicKeys.forEach((publicKey, index) =>
+    self.publicKeyIndex[publicKey.toString()] = index
+  );
   // Empty array of signatures
   this.signatures = signatures ? this._deserializeSignatures(signatures) : new Array(this.publicKeys.length);
 }
@@ -37,7 +38,7 @@ inherits(MultiSigInput, Input);
 MultiSigInput.prototype.toObject = function() {
   var obj = Input.prototype.toObject.apply(this, arguments);
   obj.threshold = this.threshold;
-  obj.publicKeys = _.map(this.publicKeys, function(publicKey) { return publicKey.toString(); });
+  obj.publicKeys = this.publicKeys.map(publicKey => publicKey.toString());
   obj.signatures = this._serializeSignatures();
   return obj;
 };
@@ -54,29 +55,27 @@ MultiSigInput.prototype.getSignatures = function(transaction, privateKey, index,
   $.checkState(this.output instanceof Output, 'Malformed output found when signing transaction');
   sigtype = sigtype || (Signature.SIGHASH_ALL |  Signature.SIGHASH_FORKID);
 
-  var self = this;
-  var results = [];
-  this.publicKeys.forEach(publicKey => {
-    if (publicKey.toString() === privateKey.publicKey.toString()) {
-      results.push(new TransactionSignature({
-        publicKey: privateKey.publicKey,
-        prevTxId: self.prevTxId,
-        outputIndex: self.outputIndex,
-        inputIndex: index,
-        signature: Sighash.sign(transaction, privateKey, sigtype, index, self.output.script, self.output.satoshisBN),
-        sigtype: sigtype
-      }));
-    }
-  });
-
-  return results;
+  var publicKeysForPrivateKey = this.publicKeys.filter(publicKey => publicKey.toString() === privateKey.publicKey.toString())
+  return publicKeysForPrivateKey.map(publicKey => new TransactionSignature({
+    publicKey: privateKey.publicKey,
+    prevTxId: this.prevTxId,
+    outputIndex: this.outputIndex,
+    inputIndex: index,
+    signature: Sighash.sign(transaction, privateKey, sigtype, index, this.output.script, this.output.satoshisBN),
+    sigtype: sigtype
+  }))
 };
 
 MultiSigInput.prototype.addSignature = function(transaction, signature) {
-  $.checkState(!this.isFullySigned(), 'All needed signatures have already been added');
+  $.checkState(!this.isFullySigned(),
+    'All needed signatures have already been added'
+  );
   $.checkArgument(this.publicKeyIndex[signature.publicKey.toString()] !== undefined,
-    'Signature has no matching public key');
-  $.checkState(this.isValidSignature(transaction, signature));
+    'Signature has no matching public key'
+  );
+  $.checkState(this.isValidSignature(transaction, signature),
+    'Signature invalid'
+  );
   this.signatures[this.publicKeyIndex[signature.publicKey.toString()]] = signature;
   this._updateScript();
   return this;
@@ -92,11 +91,13 @@ MultiSigInput.prototype._updateScript = function() {
 };
 
 MultiSigInput.prototype._createSignatures = function() {
-  var filteredSignatures = this.signatures.filter(signature => signature !== undefined)
-  return filteredSignatures.map(signature => BufferUtil.concat([
-    signature.signature.toDER(),
-    BufferUtil.integerAsSingleByteBuffer(signature.sigtype)
-  ]))
+  const definedSignatures = this.signatures.filter(signature => signature !== undefined)
+  return definedSignatures.map(
+    signature => BufferUtil.concat([
+      signature.signature.toDER(),
+      BufferUtil.integerAsSingleByteBuffer(signature.sigtype)
+    ])
+  )
 };
 
 MultiSigInput.prototype.clearSignatures = function() {
@@ -117,8 +118,7 @@ MultiSigInput.prototype.countSignatures = function() {
 };
 
 MultiSigInput.prototype.publicKeysWithoutSignature = function() {
-  var self = this;
-  return this.publicKeys.filter(publicKey => !self.signatures[self.publicKeyIndex[publicKey.toString()]]);
+  return this.publicKeys.filter(publicKey => !this.signatures[this.publicKeyIndex[publicKey.toString()]]);
 };
 
 MultiSigInput.prototype.isValidSignature = function(transaction, signature) {
@@ -135,7 +135,6 @@ MultiSigInput.prototype.isValidSignature = function(transaction, signature) {
 };
 
 /**
- *
  * @param {Buffer[]} signatures
  * @param {PublicKey[]} publicKeys
  * @param {Transaction} transaction
