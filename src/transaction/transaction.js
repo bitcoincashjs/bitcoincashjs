@@ -182,9 +182,7 @@ Transaction.prototype.invalidSatoshis = function() {
  * @param {Object} opts allows to skip certain tests. {@see Transaction#serialize}
  * @return {bitcore.Error}
  */
-Transaction.prototype.getSerializationError = function(opts) {
-  opts = opts || {};
-
+Transaction.prototype.getSerializationError = function(opts = {}) {
   if (this.invalidSatoshis()) {
     return new errors.Transaction.InvalidSatoshis();
   }
@@ -329,13 +327,8 @@ Transaction.prototype.fromObject = function fromObject(arg) {
   /* jshint maxstatements: 20 */
   $.checkArgument(_.isObject(arg) || arg instanceof Transaction);
   var self = this;
-  var transaction;
-  if (arg instanceof Transaction) {
-    transaction = transaction.toObject();
-  } else {
-    transaction = arg;
-  }
-  transaction.inputs.forEach(function(input) {
+  var transaction = arg instanceof Transaction ? transaction.toObject() : arg
+  transaction.inputs.forEach(input => {
     if (!input.output || !input.output.script) {
       self.uncheckedAddInput(new Input(input));
       return;
@@ -373,13 +366,20 @@ Transaction.prototype.fromObject = function fromObject(arg) {
 
 Transaction.prototype._checkConsistency = function(arg) {
   if (this._changeIndex !== undefined) {
-    $.checkState(this._changeScript, 'Change script missing');
-    $.checkState(this.outputs[this._changeIndex], 'Change output missing');
-    $.checkState(this.outputs[this._changeIndex].script.toString() ===
-      this._changeScript.toString(), 'Script in argument does not match script in transaction');
+    $.checkState(this._changeScript,
+      'Change script missing'
+    );
+    $.checkState(this.outputs[this._changeIndex],
+      'Change output missing'
+    );
+    $.checkState(this.outputs[this._changeIndex].script.toString() === this._changeScript.toString(),
+      'Script in argument does not match script in transaction'
+    );
   }
   if (arg && arg.hash) {
-    $.checkState(arg.hash === this.hash, 'Hash in argument does not match transaction hash');
+    $.checkState(arg.hash === this.hash, 
+      'Hash in argument does not match transaction hash'
+    );
   }
 };
 
@@ -417,7 +417,9 @@ Transaction.prototype.lockUntilDate = function(time) {
  * @return {Transaction} this
  */
 Transaction.prototype.lockUntilBlockHeight = function(height) {
-  $.checkArgument(_.isNumber(height));
+  $.checkArgument(_.isNumber(height),
+    'Block height must be a number'
+  );
   if (height >= Transaction.NLOCKTIME_BLOCKHEIGHT_LIMIT) {
     throw new errors.Transaction.BlockHeightTooHigh();
   }
@@ -513,8 +515,7 @@ Transaction.prototype._newTransaction = function() {
  */
 Transaction.prototype.from = function(utxo, pubkeys, threshold) {
   if (Array.isArray(utxo)) {
-    var self = this;
-    utxo.forEach(utxo => self.from(utxo, pubkeys, threshold));
+    utxo.forEach(utxo => this.from(utxo, pubkeys, threshold));
     return this;
   }
   // TODO: Maybe prevTxId should be a string? Or defined as read only property?
