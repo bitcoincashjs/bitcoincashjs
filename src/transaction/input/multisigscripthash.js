@@ -25,7 +25,7 @@ function MultiSigScriptHashInput(input, pubkeys, threshold, signatures, redeemSc
   this.publicKeys = _.sortBy(pubkeys, publicKey => publicKey.toString('hex'));
   this.redeemScript = redeemScript || Script.buildMultisigOut(this.publicKeys, this.threshold);
   $.checkState(Script.buildScriptHashOut(this.redeemScript).equals(this.output.script),
-    'RedeemScript don\'t hash to the provided output'
+    'RedeemScript does not hash to the provided output'
   );
   this.publicKeyIndex = {};
   this.publicKeys.forEach((publicKey, index) =>
