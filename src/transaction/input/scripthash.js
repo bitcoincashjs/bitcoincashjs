@@ -20,6 +20,7 @@ function ScriptHashInput(input, pubkeys, redeemScript) {
   Input.apply(this, arguments);
   var self = this;
   this.publicKeys = pubkeys || input.publicKeys;
+  this.threshold = threshold || input.threshold;
   this.redeemScript = redeemScript;
   $.checkState(Script.buildScriptHashOut(this.redeemScript).equals(this.output.script),
     'Provided redeemScript doesn\'t hash to the provided output');
