@@ -19,7 +19,7 @@ var TransactionSignature = require('../signature');
 function ScriptHashInput(input, pubkeys, redeemScript) {
   Input.apply(this, arguments);
   var self = this;
-  this.pubkeys = pubkeys || input.publicKeys;
+  this.publicKeys = pubkeys || input.publicKeys;
   this.redeemScript = redeemScript;
   $.checkState(Script.buildScriptHashOut(this.redeemScript).equals(this.output.script),
     'Provided redeemScript doesn\'t hash to the provided output');
