@@ -169,14 +169,14 @@ Script.fromASM = function(str) {
 };
 
 Script.fromHex = function(str) {
-  return new Script(new buffer.Buffer(str, 'hex'));
+  return new this(new buffer.Buffer(str, 'hex'));
 };
 
 Script.fromString = function(str) {
   if (JSUtil.isHexa(str) || str.length === 0) {
-    return new Script(new buffer.Buffer(str, 'hex'));
+    return new this(new buffer.Buffer(str, 'hex'));
   }
-  var script = new Script();
+  var script = new this();
   script.chunks = [];
 
   var tokens = str.split(' ');
@@ -684,7 +684,7 @@ Script.buildMultisigOut = function(publicKeys, threshold, opts) {
   $.checkArgument(threshold <= publicKeys.length,
     'Number of required signatures must be less than or equal to the number of public keys');
   opts = opts || {};
-  var script = new Script();
+  var script = new this();
   script.add(Opcode.smallInt(threshold));
   publicKeys = publicKeys.map(PublicKey);
   var sorted = publicKeys;
@@ -718,7 +718,7 @@ Script.buildMultisigIn = function(pubkeys, threshold, signatures, opts) {
   $.checkArgument(_.isNumber(threshold));
   $.checkArgument(_.isArray(signatures));
   opts = opts || {};
-  var s = new Script();
+  var s = new this();
   s.add(Opcode.OP_0);
   signatures.forEach(signature => {
     $.checkArgument(BufferUtil.isBuffer(signature), 'Signatures must be an array of Buffers');
@@ -745,7 +745,7 @@ Script.buildP2SHMultisigIn = function(pubkeys, threshold, signatures, opts) {
   $.checkArgument(_.isNumber(threshold));
   $.checkArgument(_.isArray(signatures));
   opts = opts || {};
-  var s = new Script();
+  var s = new this();
   s.add(Opcode.OP_0);
   signatures.forEach(signature => {
     $.checkArgument(BufferUtil.isBuffer(signature), 'Signatures must be an array of Buffers');
@@ -769,7 +769,7 @@ Script.buildPublicKeyHashOut = function(to) {
   } else if (_.isString(to)) {
     to = new Address(to);
   }
-  var s = new Script();
+  var s = new this();
   s.add(Opcode.OP_DUP)
     .add(Opcode.OP_HASH160)
     .add(to.hashBuffer)
@@ -785,7 +785,7 @@ Script.buildPublicKeyHashOut = function(to) {
  */
 Script.buildPublicKeyOut = function(pubkey) {
   $.checkArgument(pubkey instanceof PublicKey);
-  var s = new Script();
+  var s = new this();
   s.add(pubkey.toBuffer())
     .add(Opcode.OP_CHECKSIG);
   return s;
@@ -801,7 +801,7 @@ Script.buildDataOut = function(data, encoding) {
   if (_.isString(data)) {
     data = new Buffer(data, encoding);
   }
-  var s = new Script();
+  var s = new this();
   s.add(Opcode.OP_RETURN);
   if (!_.isUndefined(data)) {
     s.add(data);
@@ -817,7 +817,7 @@ Script.buildDataOut = function(data, encoding) {
 Script.buildScriptHashOut = function(script) {
   $.checkArgument(script instanceof Script ||
     (script instanceof Address && script.isPayToScriptHash()));
-  var s = new Script()
+  var s = new this()
     .add(Opcode.OP_HASH160)
     .add(script instanceof Address ? script.hashBuffer : Hash.sha256ripemd160(script.toBuffer()))
     .add(Opcode.OP_EQUAL);
@@ -838,7 +838,7 @@ Script.buildPublicKeyIn = function(signature, sigtype) {
   if (signature instanceof Signature) {
     signature = signature.toBuffer();
   }
-  var script = new Script();
+  var script = new this();
   script.add(BufferUtil.concat([
     signature,
     BufferUtil.integerAsSingleByteBuffer(sigtype || Signature.SIGHASH_ALL)
@@ -860,7 +860,7 @@ Script.buildPublicKeyHashIn = function(publicKey, signature, sigtype) {
   if (signature instanceof Signature) {
     signature = signature.toBuffer();
   }
-  var script = new Script()
+  var script = new this()
     .add(BufferUtil.concat([
       signature,
       BufferUtil.integerAsSingleByteBuffer(sigtype || Signature.SIGHASH_ALL)
@@ -873,7 +873,7 @@ Script.buildPublicKeyHashIn = function(publicKey, signature, sigtype) {
  * @returns {Script} an empty script
  */
 Script.empty = function() {
-  return new Script();
+  return new this();
 };
 
 /**
