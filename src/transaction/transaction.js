@@ -320,6 +320,12 @@ Transaction.prototype.toObject = Transaction.prototype.toJSON = function toObjec
   if (this._fee !== undefined) {
     obj.fee = this._fee;
   }
+  if (this._dataInputs !== undefined) {
+    obj.dataInputs = this._dataInputs;
+  }
+  if (this._dataOutputs !== undefined) {
+    obj.dataOutputs = this._dataOutputs;
+  }
   return obj;
 };
 
