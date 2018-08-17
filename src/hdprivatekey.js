@@ -551,9 +551,9 @@ HDPrivateKey.prototype.toString = function() {
  * Returns the console representation of this extended private key.
  * @return string
  */
-HDPrivateKey.prototype.inspect = function() {
-  return '<HDPrivateKey: ' + this.xprivkey + '>';
-};
+// HDPrivateKey.prototype.inspect = function() {
+//   return '<HDPrivateKey: ' + this.xprivkey + '>';
+// };
 
 /**
  * Returns a plain object with a representation of this private key.
