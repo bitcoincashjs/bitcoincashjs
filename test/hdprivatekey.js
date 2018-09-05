@@ -115,9 +115,6 @@ describe('HDPrivate key interface', function() {
 
   });
 
-  it('inspect() displays correctly', function() {
-    HDPrivateKey(xprivkey).inspect().should.equal('<HDPrivateKey: ' + xprivkey + '>');
-  });
   it('fails when trying to derive with an invalid argument', function() {
     expectDerivationFail([], hdErrors.InvalidDerivationArgument);
   });

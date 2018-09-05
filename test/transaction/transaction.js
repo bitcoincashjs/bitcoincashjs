@@ -114,7 +114,6 @@ describe('Transaction', function() {
       .sign(p2shPrivateKey1)
       .sign(p2shPrivateKey2);
 
-console.log('[transaction.js.116]'); //TODO
     var txData = JSON.stringify(tx);
     var tx2 = new Transaction(JSON.parse(txData));
     var tx2Data = JSON.stringify(tx2);
@@ -620,7 +619,7 @@ console.log('[transaction.js.116]'); //TODO
       tx.outputs[0]._satoshis = 100;
       tx.outputs[0]._satoshisBN = new BN('fffffffffffffff', 16);
       var verify = tx.verify();
-      verify.should.equal('transaction txout 0 satoshis is invalid');
+      verify.should.equal('Transaction output contains invalid amount');
     });
 
     it('not if _satoshis is negative', function() {
@@ -636,7 +635,7 @@ console.log('[transaction.js.116]'); //TODO
       tx.outputs[0]._satoshis = -100;
       tx.outputs[0]._satoshisBN = new BN(-100, 10);
       var verify = tx.verify();
-      verify.should.equal('transaction txout 0 satoshis is invalid');
+      verify.should.equal('Transaction output contains invalid amount');
     });
 
     it('not if transaction is greater than max block size', function() {
@@ -655,7 +654,7 @@ console.log('[transaction.js.116]'); //TODO
       });
 
       var verify = tx.verify();
-      verify.should.equal('transaction over the maximum block size');
+      verify.should.equal('Transaction over the maximum block size');
 
     });
 
@@ -673,7 +672,7 @@ console.log('[transaction.js.116]'); //TODO
       tx.isCoinbase = sinon.stub().returns(false);
       tx.inputs[0].isNull = sinon.stub().returns(true);
       var verify = tx.verify();
-      verify.should.equal('transaction input 0 has null input');
+      verify.should.equal('Transaction has null input');
 
     });
 
@@ -759,7 +758,7 @@ console.log('[transaction.js.116]'); //TODO
           script: Script(),
           satoshis: 10000
         }, [], 1);
-      }).to.throw('Number of required signatures must be greater than the number of public keys');
+      }).to.throw('Number of signatures must be greater than the number of public keys');
     });
     it('will add an empty script if not supplied', function() {
       transaction = new Transaction();
@@ -926,7 +925,7 @@ console.log('[transaction.js.116]'); //TODO
     txObj.hash = 'a477af6b2667c29670467e4e0728b685ee07b240235771862318e29ddbe58458';
     (function() {
       var tx2 = new Transaction(txObj);
-    }).should.throw('Hash in object does not match transaction hash');
+    }).should.throw('Hash in argument does not match transaction hash');
   });
 
   describe('inputAmount + outputAmount', function() {
