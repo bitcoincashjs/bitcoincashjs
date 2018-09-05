@@ -1,6 +1,5 @@
 'use strict';
 
-var _ = require('lodash');
 var $ = require('../../util/preconditions');
 var errors = require('../../errors');
 var BufferWriter = require('../../encoding/bufferwriter');
@@ -46,27 +45,27 @@ Object.defineProperty(Input.prototype, 'script', {
 });
 
 Input.fromObject = function(obj) {
-  $.checkArgument(_.isObject(obj));
-  var input = new Input();
-  return input._fromObject(obj);
+  $.checkArgument(obj !== null && typeof obj === 'object');
+  return new Input()._fromObject(obj);
 };
 
 Input.prototype._fromObject = function(params) {
-  var prevTxId;
-  if (_.isString(params.prevTxId) && JSUtil.isHexa(params.prevTxId)) {
-    prevTxId = new buffer.Buffer(params.prevTxId, 'hex');
-  } else {
-    prevTxId = params.prevTxId;
-  }
-  this.output = params.output ?
-    (params.output instanceof Output ? params.output : new Output(params.output)) : undefined;
-  this.prevTxId = prevTxId || params.txidbuf;
-  this.outputIndex = _.isUndefined(params.outputIndex) ? params.txoutnum : params.outputIndex;
-  this.sequenceNumber = _.isUndefined(params.sequenceNumber) ?
-    (_.isUndefined(params.seqnum) ? DEFAULT_SEQNUMBER : params.seqnum) : params.sequenceNumber;
-  if (_.isUndefined(params.script) && _.isUndefined(params.scriptBuffer)) {
+  if (params.script === undefined && params.scriptBuffer === undefined) {
     throw new errors.Transaction.Input.MissingScript();
   }
+
+  this.prevTxId = typeof params.prevTxId === 'string' && JSUtil.isHexa(params.prevTxId)
+    ? new buffer.Buffer(params.prevTxId, 'hex')
+    : params.prevTxId
+  this.output = params.output
+    ? (params.output instanceof Output ? params.output : new Output(params.output))
+    : undefined;
+  this.outputIndex = params.outputIndex === undefined
+    ? params.txoutnum
+    : params.outputIndex;
+  this.sequenceNumber = (params.sequenceNumber === undefined)
+    ? (params.seqnum === undefined ? DEFAULT_SEQNUMBER : params.seqnum)
+    : params.sequenceNumber;
   this.setScript(params.scriptBuffer || params.script);
   return this;
 };
@@ -76,7 +75,7 @@ Input.prototype.toObject = Input.prototype.toJSON = function toObject() {
     prevTxId: this.prevTxId.toString('hex'),
     outputIndex: this.outputIndex,
     sequenceNumber: this.sequenceNumber,
-    script: this._scriptBuffer.toString('hex'),
+    script: this._scriptBuffer.toString('hex')
   };
   // add human readable form if input contains valid script
   if (this.script) {
@@ -100,9 +99,7 @@ Input.fromBufferReader = function(br) {
 };
 
 Input.prototype.toBufferWriter = function(writer) {
-  if (!writer) {
-    writer = new BufferWriter();
-  }
+  writer = writer || new BufferWriter()
   writer.writeReverse(this.prevTxId);
   writer.writeUInt32LE(this.outputIndex);
   var script = this._scriptBuffer;
@@ -121,7 +118,7 @@ Input.prototype.setScript = function(script) {
   } else if (JSUtil.isHexa(script)) {
     // hex string script
     this._scriptBuffer = new buffer.Buffer(script, 'hex');
-  } else if (_.isString(script)) {
+  } else if (typeof script === 'string') {
     // human readable string script
     this._script = new Script(script);
     this._script._isInput = true;

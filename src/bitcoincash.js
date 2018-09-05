@@ -5,12 +5,13 @@ var bch = module.exports;
 // module information
 bch.version = 'v' + require('../package.json').version;
 bch.versionGuard = function(version) {
-  if (version !== undefined) {
-    var message = 'More than one instance of bitcoincashjs found. ' +
-      'Please make sure to require bitcoincashjs and check that submodules do' +
-      ' not also include their own bitcoincashjs dependency.';
-    throw new Error(message);
-  }
+  return
+  // if (version !== undefined) {
+  //   var message = 'More than one instance of bitcoincashjs found. ' +
+  //     'Please make sure to require bitcoincashjs and check that submodules do' +
+  //     ' not also include their own bitcoincashjs dependency.';
+  //   throw new Error(message);
+  // }
 };
 bch.versionGuard(global._bch);
 global._bch = bch.version;
