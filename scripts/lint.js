@@ -1,13 +1,18 @@
 /**
  * @license
- * https://github.com/bitcoincashjs/bitcoincashjs
+ * https://github.com/BitcoinDB/BitcoinCashFlow
  * Copyright (c) 2018 Emilio Almansi
  * Distributed under the MIT software license, see the accompanying
  * file LICENSE or http://www.opensource.org/licenses/mit-license.php.
  */
 
-var shell = require('shelljs')
-shell.config.fatal = false
+const shell = require('shelljs'); // eslint-disable-line import/no-extraneous-dependencies
 
-shell.exec('find src/ test/ scripts/ -type f -name "*.js"', { silent: true })
-  .exec('xargs npx jshint')
+shell.config.fatal = false;
+
+// Add files and folders to the list as we fix the errors they contain.
+const toTest = [
+  'scripts/',
+  'src/block/block.js',
+].join(' ');
+process.exit(shell.exec(`./node_modules/.bin/eslint ${toTest}`).code);

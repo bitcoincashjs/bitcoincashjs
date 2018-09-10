@@ -32,13 +32,13 @@ inherits(PublicKeyHashInput, Input);
  * @return {Array} of objects that can be
  */
 PublicKeyHashInput.prototype.getSignatures = function(transaction, privateKey, index, sigtype, hashData) {
-  $.checkState(this.output instanceof Output);
+  $.checkState(this.output instanceof Output, 'Malformed output found when signing transaction');
   hashData = hashData || Hash.sha256ripemd160(privateKey.publicKey.toBuffer());
   sigtype = sigtype || (Signature.SIGHASH_ALL |  Signature.SIGHASH_FORKID);
 
   if (BufferUtil.equals(hashData, this.output.script.getPublicKeyHash())) {
     return [new TransactionSignature({
-      publicKey: privateKey.publicKey,
+      publicKey: privateKey.toPublicKey(),
       prevTxId: this.prevTxId,
       outputIndex: this.outputIndex,
       inputIndex: index,
@@ -60,8 +60,7 @@ PublicKeyHashInput.prototype.getSignatures = function(transaction, privateKey, i
  * @return {PublicKeyHashInput} this, for chaining
  */
 PublicKeyHashInput.prototype.addSignature = function(transaction, signature) {
-  $.checkState(this.isValidSignature(transaction, signature), 'Signature is invalid');
-
+  $.checkState(this.isValidSignature(transaction, signature), 'Failed adding signature because it is invalid');
   this.setScript(Script.buildPublicKeyHashIn(
     signature.publicKey,
     signature.signature.toDER(),

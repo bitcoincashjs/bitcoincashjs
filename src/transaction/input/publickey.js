@@ -29,7 +29,7 @@ inherits(PublicKeyInput, Input);
  * @return {Array} of objects that can be
  */
 PublicKeyInput.prototype.getSignatures = function(transaction, privateKey, index, sigtype) {
-  $.checkState(this.output instanceof Output);
+  $.checkState(this.output instanceof Output, 'Malformed output found when signing transaction');
   sigtype = sigtype || (Signature.SIGHASH_ALL |  Signature.SIGHASH_FORKID);
   var publicKey = privateKey.toPublicKey();
   if (publicKey.toString() === this.output.script.getPublicKey().toString('hex')) {
@@ -55,7 +55,7 @@ PublicKeyInput.prototype.getSignatures = function(transaction, privateKey, index
  * @return {PublicKeyInput} this, for chaining
  */
 PublicKeyInput.prototype.addSignature = function(transaction, signature) {
-  $.checkState(this.isValidSignature(transaction, signature), 'Signature is invalid');
+  $.checkState(this.isValidSignature(transaction, signature), 'Failed adding signature because it is invalid');
   this.setScript(Script.buildPublicKeyIn(
     signature.signature.toDER(),
     signature.sigtype

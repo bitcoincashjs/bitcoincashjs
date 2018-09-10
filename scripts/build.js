@@ -6,18 +6,19 @@
  * file LICENSE or http://www.opensource.org/licenses/mit-license.php.
  */
 
-var shell = require('shelljs')
-shell.config.fatal = true
-var version = require('../package.json').version
+const shell = require('shelljs'); // eslint-disable-line import/no-extraneous-dependencies
 
-shell.rm('-rf', 'dist')
-shell.mkdir('-p', 'dist')
+shell.config.fatal = true;
+const { version } = require('../package.json');
+
+shell.rm('-rf', 'dist');
+shell.mkdir('-p', 'dist');
 
 shell.exec('npx browserify src/bitcoincash.js --s bch', { silent: true })
-  .to('dist/bitcoincash-' + version + '.js')
-shell.echo('Generated file: dist/bitcoincash-' + version + '.js.')
+  .to(`dist/bitcoincash-${version}.js`);
+shell.echo(`Generated file: dist/bitcoincash-${version}.js.`);
 
-shell.cp('LICENSE.js', 'dist/bitcoincash-' + version + '.min.js')
-shell.exec('cat dist/bitcoincash-' + version + '.js | npx uglifyjs -c', { silent: true })
-  .toEnd('dist/bitcoincash-' + version + '.min.js')
-shell.echo('Generated file: dist/bitcoincash-' + version + '.min.js.')
+shell.cp('LICENSE.js', `dist/bitcoincash-${version}.min.js`);
+shell.exec(`cat dist/bitcoincash-${version}.js | npx uglifyjs -c`, { silent: true })
+  .toEnd(`dist/bitcoincash-${version}.min.js`);
+shell.echo(`Generated file: dist/bitcoincash-${version}.min.js.`);

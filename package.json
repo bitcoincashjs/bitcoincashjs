@@ -1,8 +1,8 @@
 {
-  "name": "bitcoincashjs",
-  "version": "0.1.10",
+  "name": "bitcoincashflow",
+  "version": "0.1.11",
   "description": "A simple, safe, and powerful JavaScript Bitcoin Cash library.",
-  "author": "Emilio Almansi <hi@ealmansi.com>",
+  "author": "Clemens Ley <ley.clemens@gmail.com>",
   "main": "src/bitcoincash.js",
   "files": [
     "src/",
@@ -41,7 +41,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/bitcoincashjs/bitcoincashjs.git"
+    "url": "https://github.com/BitcoinDB/BitcoinCashFlow"
   },
   "browser": {
     "request": "browser-request"
@@ -62,8 +62,10 @@
     "browserify": "^14.5.0",
     "chai": "^1.10.0",
     "coveralls": "^3.0.0",
+    "eslint": "^5.5.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.14.0",
     "jsdoc": "^3.5.5",
-    "jshint": "^2.9.5",
     "karma": "^2.0.0",
     "karma-chrome-launcher": "^2.2.0",
     "karma-detect-browsers": "^2.2.6",
