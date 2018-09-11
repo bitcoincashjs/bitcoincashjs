@@ -39,7 +39,6 @@ Message.prototype.magicHash = function magicHash() {
 };
 
 Message.prototype._sign = function _sign(privateKey) {
-  console.log(privateKey);
   $.checkArgument(privateKey instanceof PrivateKey,
     'First argument should be an instance of PrivateKey');
   var hash = this.magicHash();

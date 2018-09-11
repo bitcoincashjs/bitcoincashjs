@@ -1,15 +1,12 @@
-'use strict';
+const _ = require('lodash');
+const BN = require('../crypto/bn');
+const BufferUtil = require('../util/buffer');
+const BufferReader = require('../encoding/bufferreader');
+const BufferWriter = require('../encoding/bufferwriter');
+const Hash = require('../crypto/hash');
+const $ = require('../util/preconditions');
 
-var _ = require('lodash');
-var BN = require('../crypto/bn');
-var BufferUtil = require('../util/buffer');
-var BufferReader = require('../encoding/bufferreader');
-var BufferWriter = require('../encoding/bufferwriter');
-var Hash = require('../crypto/hash');
-var JSUtil = require('../util/js');
-var $ = require('../util/preconditions');
-
-var GENESIS_BITS = 0x1d00ffff;
+const GENESIS_BITS = 0x1d00ffff;
 
 /**
  * Instantiate a BlockHeader from a Buffer, JSON object, or Object with
@@ -19,11 +16,11 @@ var GENESIS_BITS = 0x1d00ffff;
  * @returns {BlockHeader} - An instance of block header
  * @constructor
  */
-var BlockHeader = function BlockHeader(arg) {
+const BlockHeader = function BlockHeader(arg) {
   if (!(this instanceof BlockHeader)) {
     return new BlockHeader(arg);
   }
-  var info = BlockHeader._from(arg);
+  const info = BlockHeader._from(arg);
   this.version = info.version;
   this.prevHash = info.prevHash;
   this.merkleRoot = info.merkleRoot;
@@ -35,7 +32,7 @@ var BlockHeader = function BlockHeader(arg) {
   if (info.hash) {
     $.checkState(
       this.hash === info.hash,
-      'Argument object hash property does not match block hash.'
+      'Argument object hash property does not match block hash.',
     );
   }
 
@@ -49,7 +46,7 @@ var BlockHeader = function BlockHeader(arg) {
  * @private
  */
 BlockHeader._from = function _from(arg) {
-  var info = {};
+  let info = {};
   if (BufferUtil.isBuffer(arg)) {
     info = BlockHeader._fromBufferReader(BufferReader(arg));
   } else if (_.isObject(arg)) {
@@ -67,23 +64,23 @@ BlockHeader._from = function _from(arg) {
  */
 BlockHeader._fromObject = function _fromObject(data) {
   $.checkArgument(data, 'data is required');
-  var prevHash = data.prevHash;
-  var merkleRoot = data.merkleRoot;
+  let { prevHash } = data;
+  let { merkleRoot } = data;
   if (_.isString(data.prevHash)) {
-    prevHash = BufferUtil.reverse(new Buffer(data.prevHash, 'hex'));
+    prevHash = BufferUtil.reverse(Buffer.from(data.prevHash, 'hex'));
   }
   if (_.isString(data.merkleRoot)) {
-    merkleRoot = BufferUtil.reverse(new Buffer(data.merkleRoot, 'hex'));
+    merkleRoot = BufferUtil.reverse(Buffer.from(data.merkleRoot, 'hex'));
   }
-  var info = {
+  const info = {
     hash: data.hash,
     version: data.version,
-    prevHash: prevHash,
-    merkleRoot: merkleRoot,
+    prevHash,
+    merkleRoot,
     time: data.time,
     timestamp: data.time,
     bits: data.bits,
-    nonce: data.nonce
+    nonce: data.nonce,
   };
   return info;
 };
@@ -93,7 +90,7 @@ BlockHeader._fromObject = function _fromObject(data) {
  * @returns {BlockHeader} - An instance of block header
  */
 BlockHeader.fromObject = function fromObject(obj) {
-  var info = BlockHeader._fromObject(obj);
+  const info = BlockHeader._fromObject(obj);
   return new BlockHeader(info);
 };
 
@@ -103,11 +100,11 @@ BlockHeader.fromObject = function fromObject(obj) {
  */
 BlockHeader.fromRawBlock = function fromRawBlock(data) {
   if (!BufferUtil.isBuffer(data)) {
-    data = new Buffer(data, 'binary');
+    data = Buffer.from(data, 'binary');
   }
-  var br = BufferReader(data);
+  const br = BufferReader(data);
   br.pos = BlockHeader.Constants.START_OF_HEADER;
-  var info = BlockHeader._fromBufferReader(br);
+  const info = BlockHeader._fromBufferReader(br);
   return new BlockHeader(info);
 };
 
@@ -116,7 +113,7 @@ BlockHeader.fromRawBlock = function fromRawBlock(data) {
  * @returns {BlockHeader} - An instance of block header
  */
 BlockHeader.fromBuffer = function fromBuffer(buf) {
-  var info = BlockHeader._fromBufferReader(BufferReader(buf));
+  const info = BlockHeader._fromBufferReader(BufferReader(buf));
   return new BlockHeader(info);
 };
 
@@ -125,7 +122,7 @@ BlockHeader.fromBuffer = function fromBuffer(buf) {
  * @returns {BlockHeader} - An instance of block header
  */
 BlockHeader.fromString = function fromString(str) {
-  var buf = new Buffer(str, 'hex');
+  const buf = Buffer.from(str, 'hex');
   return BlockHeader.fromBuffer(buf);
 };
 
@@ -135,7 +132,7 @@ BlockHeader.fromString = function fromString(str) {
  * @private
  */
 BlockHeader._fromBufferReader = function _fromBufferReader(br) {
-  var info = {};
+  const info = {};
   info.version = br.readInt32LE();
   info.prevHash = br.read(32);
   info.merkleRoot = br.read(32);
@@ -150,14 +147,14 @@ BlockHeader._fromBufferReader = function _fromBufferReader(br) {
  * @returns {BlockHeader} - An instance of block header
  */
 BlockHeader.fromBufferReader = function fromBufferReader(br) {
-  var info = BlockHeader._fromBufferReader(br);
+  const info = BlockHeader._fromBufferReader(br);
   return new BlockHeader(info);
 };
 
 /**
  * @returns {Object} - A plain object of the BlockHeader
  */
-BlockHeader.prototype.toObject = BlockHeader.prototype.toJSON = function toObject() {
+BlockHeader.prototype.toJSON = function toObject() {
   return {
     hash: this.hash,
     version: this.version,
@@ -165,9 +162,11 @@ BlockHeader.prototype.toObject = BlockHeader.prototype.toJSON = function toObjec
     merkleRoot: BufferUtil.reverse(this.merkleRoot).toString('hex'),
     time: this.time,
     bits: this.bits,
-    nonce: this.nonce
+    nonce: this.nonce,
   };
 };
+
+BlockHeader.prototype.toObject = BlockHeader.prototype.toJSON;
 
 /**
  * @returns {Buffer} - A Buffer of the BlockHeader
@@ -208,10 +207,11 @@ BlockHeader.prototype.toBufferWriter = function toBufferWriter(bw) {
 BlockHeader.prototype.getTargetDifficulty = function getTargetDifficulty(bits) {
   bits = bits || this.bits;
 
-  var target = new BN(bits & 0xffffff);
-  var mov = 8 * ((bits >>> 24) - 3);
-  while (mov-- > 0) {
+  let target = new BN(bits & 0xffffff);
+  let mov = 8 * ((bits >>> 24) - 3);
+  while (mov > 0) {
     target = target.mul(new BN(2));
+    mov -= 1;
   }
   return target;
 };
@@ -221,12 +221,12 @@ BlockHeader.prototype.getTargetDifficulty = function getTargetDifficulty(bits) {
  * @return {Number}
  */
 BlockHeader.prototype.getDifficulty = function getDifficulty() {
-  var difficulty1TargetBN = this.getTargetDifficulty(GENESIS_BITS).mul(new BN(Math.pow(10, 8)));
-  var currentTargetBN = this.getTargetDifficulty();
+  const difficulty1TargetBN = this.getTargetDifficulty(GENESIS_BITS).mul(new BN(10 ** 8));
+  const currentTargetBN = this.getTargetDifficulty();
 
-  var difficultyString = difficulty1TargetBN.div(currentTargetBN).toString(10);
-  var decimalPos = difficultyString.length - 8;
-  difficultyString = difficultyString.slice(0, decimalPos) + '.' + difficultyString.slice(decimalPos);
+  let difficultyString = difficulty1TargetBN.div(currentTargetBN).toString(10);
+  const decimalPos = difficultyString.length - 8;
+  difficultyString = `${difficultyString.slice(0, decimalPos)}.${difficultyString.slice(decimalPos)}`;
 
   return parseFloat(difficultyString);
 };
@@ -235,23 +235,23 @@ BlockHeader.prototype.getDifficulty = function getDifficulty() {
  * @returns {Buffer} - The little endian hash buffer of the header
  */
 BlockHeader.prototype._getHash = function hash() {
-  var buf = this.toBuffer();
+  const buf = this.toBuffer();
   return Hash.sha256sha256(buf);
 };
 
-var idProperty = {
+const idProperty = {
   configurable: false,
   enumerable: true,
   /**
    * @returns {string} - The big endian hash buffer of the header
    */
-  get: function() {
+  get() {
     if (!this._id) {
       this._id = BufferReader(this._getHash()).readReverse().toString('hex');
     }
     return this._id;
   },
-  set: _.noop
+  set: _.noop,
 };
 Object.defineProperty(BlockHeader.prototype, 'id', idProperty);
 Object.defineProperty(BlockHeader.prototype, 'hash', idProperty);
@@ -260,7 +260,7 @@ Object.defineProperty(BlockHeader.prototype, 'hash', idProperty);
  * @returns {Boolean} - If timestamp is not too far in the future
  */
 BlockHeader.prototype.validTimestamp = function validTimestamp() {
-  var currentTime = Math.round(new Date().getTime() / 1000);
+  const currentTime = Math.round(new Date().getTime() / 1000);
   if (this.time > currentTime + BlockHeader.Constants.MAX_TIME_OFFSET) {
     return false;
   }
@@ -271,8 +271,8 @@ BlockHeader.prototype.validTimestamp = function validTimestamp() {
  * @returns {Boolean} - If the proof-of-work hash satisfies the target difficulty
  */
 BlockHeader.prototype.validProofOfWork = function validProofOfWork() {
-  var pow = new BN(this.id, 'hex');
-  var target = this.getTargetDifficulty();
+  const pow = new BN(this.id, 'hex');
+  const target = this.getTargetDifficulty();
 
   if (pow.cmp(target) > 0) {
     return false;
@@ -284,13 +284,13 @@ BlockHeader.prototype.validProofOfWork = function validProofOfWork() {
  * @returns {string} - A string formatted for the console
  */
 BlockHeader.prototype.inspect = function inspect() {
-  return '<BlockHeader ' + this.id + '>';
+  return `<BlockHeader ${this.id}>`;
 };
 
 BlockHeader.Constants = {
   START_OF_HEADER: 8, // Start buffer position in raw block data
   MAX_TIME_OFFSET: 2 * 60 * 60, // The max a timestamp can be in the future
-  LARGEST_HASH: new BN('10000000000000000000000000000000000000000000000000000000000000000', 'hex')
+  LARGEST_HASH: new BN('10000000000000000000000000000000000000000000000000000000000000000', 'hex'),
 };
 
 module.exports = BlockHeader;

@@ -6,13 +6,14 @@
  * file LICENSE or http://www.opensource.org/licenses/mit-license.php.
  */
 
-var shell = require('shelljs')
-shell.config.fatal = true
+const shell = require('shelljs'); // eslint-disable-line import/no-extraneous-dependencies
 
-shell.rm('-rf', '.build')
-shell.mkdir('-p', '.build')
+shell.config.fatal = true;
+
+shell.rm('-rf', '.build');
+shell.mkdir('-p', '.build');
 
 shell.exec('find test/ -type f -name "*.js"', { silent: true })
   .exec('xargs npx browserify -t brfs', { silent: true })
-  .to('.build/tests.js')
-shell.echo('Generated file: .build/tests.js.')
+  .to('.build/tests.js');
+shell.echo('Generated file: .build/tests.js.');
