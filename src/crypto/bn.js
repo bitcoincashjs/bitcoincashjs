@@ -1,90 +1,109 @@
-'use strict';
 
-var BN = require('bn.js');
-var $ = require('../util/preconditions');
-var _ = require('lodash');
 
-var reversebuf = function(buf) {
-  var buf2 = new Buffer(buf.length);
-  for (var i = 0; i < buf.length; i++) {
+const BN = require('bn.js');
+const _ = require('lodash');
+const $ = require('../util/preconditions');
+
+function reversebuf(buf) {
+  /* eslint-disable */
+  const buf2 = Buffer.alloc(buf.length);
+    /* eslint-enable */
+  for (let i = 0; i < buf.length; i += 1) {
     buf2[i] = buf[buf.length - 1 - i];
   }
   return buf2;
-};
+}
 
 BN.Zero = new BN(0);
 BN.One = new BN(1);
 BN.Minus1 = new BN(-1);
 
-BN.fromNumber = function(n) {
+
+function fromNumber(n) {
   $.checkArgument(_.isNumber(n));
   return new BN(n);
-};
+}
 
-BN.fromString = function(str, base) {
+BN.fromNumber = fromNumber;
+
+function fromString(str, base) {
   $.checkArgument(_.isString(str));
   return new BN(str, base);
-};
+}
 
-BN.fromBuffer = function(buf, opts) {
+BN.fromString = fromString;
+
+function fromBuffer(buf, opts) {
+  let localbuf;
   if (typeof opts !== 'undefined' && opts.endian === 'little') {
-    buf = reversebuf(buf);
+    localbuf = reversebuf(buf);
+  } else {
+    localbuf = buf;
   }
-  var hex = buf.toString('hex');
-  var bn = new BN(hex, 16);
+  const hex = localbuf.toString('hex');
+  const bn = new BN(hex, 16);
   return bn;
-};
+}
+BN.fromBuffer = fromBuffer;
 
 /**
  * Instantiate a BigNumber from a "signed magnitude buffer"
  * (a buffer where the most significant bit represents the sign (0 = positive, -1 = negative))
  */
-BN.fromSM = function(buf, opts) {
-  var ret;
+function fromSM(buf, opts) {
+  let ret;
+  let localbuf;
   if (buf.length === 0) {
-    return BN.fromBuffer(new Buffer([0]));
+    return BN.fromBuffer(Buffer.alloc([0]));
   }
 
-  var endian = 'big';
+  let endian = 'big';
   if (opts) {
-    endian = opts.endian;
+    endian = opts;
   }
   if (endian === 'little') {
-    buf = reversebuf(buf);
+    localbuf = reversebuf(buf);
+  } else {
+    localbuf = buf;
   }
 
-  if (buf[0] & 0x80) {
-    buf[0] = buf[0] & 0x7f;
-    ret = BN.fromBuffer(buf);
+  if (localbuf[0] && 0x80) {
+    const tmpvar = localbuf[0];
+    /* eslint no-bitwise: ["error", { "allow": ["&"] }] */
+    localbuf[0] = tmpvar & 0x7f;
+    ret = BN.fromBuffer(localbuf);
     ret.neg().copy(ret);
   } else {
-    ret = BN.fromBuffer(buf);
+    ret = BN.fromBuffer(localbuf);
   }
   return ret;
-};
+}
+BN.fromSM = fromSM;
 
 
-BN.prototype.toNumber = function() {
+function toNumber() {
   return parseInt(this.toString(10), 10);
-};
+}
+BN.prototype.toNumber = toNumber;
 
-BN.prototype.toBuffer = function(opts) {
-  var buf, hex;
+function toBuffer(opts) {
+  let buf;
+  let hex;
   if (opts && opts.size) {
     hex = this.toString(16, 2);
-    var natlen = hex.length / 2;
+    const natlen = hex.length / 2;
+    /* eslint-disable */
     buf = new Buffer(hex, 'hex');
+      /* eslint-enable */
 
-    if (natlen === opts.size) {
-      buf = buf;
-    } else if (natlen > opts.size) {
+    if (natlen > opts.size) {
       buf = BN.trim(buf, natlen);
     } else if (natlen < opts.size) {
       buf = BN.pad(buf, natlen, opts.size);
     }
   } else {
     hex = this.toString(16, 2);
-    buf = new Buffer(hex, 'hex');
+    buf = Buffer.alloc(hex, 'hex');
   }
 
   if (typeof opts !== 'undefined' && opts.endian === 'little') {
@@ -92,39 +111,46 @@ BN.prototype.toBuffer = function(opts) {
   }
 
   return buf;
-};
+}
+BN.prototype.toBuffer = toBuffer;
 
-BN.prototype.toSMBigEndian = function() {
-  var buf;
+function toSMBigEndian() {
+  let buf;
   if (this.cmp(BN.Zero) === -1) {
     buf = this.neg().toBuffer();
-    if (buf[0] & 0x80) {
-      buf = Buffer.concat([new Buffer([0x80]), buf]);
+    if (buf[0] && 0x80) {
+      buf = Buffer.concat([Buffer.alloc([0x80]), buf]);
     } else {
-      buf[0] = buf[0] | 0x80;
+      const tmpvar = buf[0];
+      /*eslint-disable */
+      buf[0] = tmpvar | 0x80;
+      /* eslint-enable */
     }
   } else {
     buf = this.toBuffer();
+    /* eslint no-bitwise: ["error", { "allow": ["&"] }] */
     if (buf[0] & 0x80) {
-      buf = Buffer.concat([new Buffer([0x00]), buf]);
+      buf = Buffer.concat([Buffer.alloc([0x00]), buf]);
     }
   }
 
-  if (buf.length === 1 & buf[0] === 0) {
-    buf = new Buffer([]);
+  if (buf.length === 1 && buf[0] === 0) {
+    buf = Buffer.alloc([]);
   }
   return buf;
-};
+}
+BN.prototype.toSMBigEndian = toSMBigEndian;
 
-BN.prototype.toSM = function(opts) {
-  var endian = opts ? opts.endian : 'big';
-  var buf = this.toSMBigEndian();
+function toSM(opts) {
+  const endian = opts ? opts.endian : 'big';
+  let buf = this.toSMBigEndian();
 
   if (endian === 'little') {
     buf = reversebuf(buf);
   }
   return buf;
-};
+}
+BN.prototype.toSM = toSM;
 
 /**
  * Create a BN from a "ScriptNum":
@@ -134,8 +160,8 @@ BN.prototype.toSM = function(opts) {
  * 4 bytes. We copy that behavior here. A third argument, `size`, is provided to
  * extend the hard limit of 4 bytes, as some usages require more than 4 bytes.
  */
-BN.fromScriptNumBuffer = function(buf, fRequireMinimal, size) {
-  var nMaxNumSize = size || 4;
+function fromScriptNumBuffer(buf, fRequireMinimal, size) {
+  const nMaxNumSize = size || 4;
   $.checkArgument(buf.length <= nMaxNumSize, new Error('script number overflow'));
   if (fRequireMinimal && buf.length > 0) {
     // Check that the number is encoded with the minimum possible
@@ -156,9 +182,10 @@ BN.fromScriptNumBuffer = function(buf, fRequireMinimal, size) {
     }
   }
   return BN.fromSM(buf, {
-    endian: 'little'
+    endian: 'little',
   });
-};
+}
+BN.fromScriptNumBuffer = fromScriptNumBuffer;
 
 /**
  * The corollary to the above, with the notable exception that we do not throw
@@ -166,37 +193,44 @@ BN.fromScriptNumBuffer = function(buf, fRequireMinimal, size) {
  * performing a numerical operation that results in an overflow to more than 4
  * bytes).
  */
-BN.prototype.toScriptNumBuffer = function() {
+function toScriptNumBuffer() {
   return this.toSM({
-    endian: 'little'
+    endian: 'little',
   });
-};
+}
+BN.prototype.toScriptNumBuffer = toScriptNumBuffer;
 
-BN.prototype.gt = function(b) {
+function gt(b) {
   return this.cmp(b) > 0;
-};
+}
+BN.prototype.gt = gt;
 
-BN.prototype.gte = function(b) {
+function gte(b) {
   return this.cmp(b) >= 0;
-};
+}
+BN.prototype.gte = gte;
 
-BN.prototype.lt = function(b) {
+function lt(b) {
   return this.cmp(b) < 0;
-};
+}
+BN.prototype.lt = lt;
 
-BN.trim = function(buf, natlen) {
+function trim(buf, natlen) {
   return buf.slice(natlen - buf.length, buf.length);
-};
+}
+BN.trim = trim;
 
-BN.pad = function(buf, natlen, size) {
-  var rbuf = new Buffer(size);
-  for (var i = 0; i < buf.length; i++) {
+function pad(buf, natlen, size) {
+  const rbuf = Buffer.alloc(size);
+  let i;
+  for (i = 0; i < buf.length; i += 1) {
     rbuf[rbuf.length - 1 - i] = buf[buf.length - 1 - i];
   }
-  for (i = 0; i < size - natlen; i++) {
+  for (i = 0; i < size - natlen; i += 1) {
     rbuf[i] = 0;
   }
   return rbuf;
-};
+}
+BN.pad = pad;
 
 module.exports = BN;
