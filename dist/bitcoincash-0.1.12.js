@@ -49374,7 +49374,7 @@ exports.createContext = Script.createContext = function (context) {
 },{"indexof":144}],213:[function(require,module,exports){
 module.exports={
   "name": "bitcoincashjs",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "A simple, safe, and powerful JavaScript Bitcoin Cash library.",
   "author": "Emilio Almansi <hi@ealmansi.com>",
   "main": "src/bitcoincash.js",
