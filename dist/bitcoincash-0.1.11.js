@@ -15074,7 +15074,7 @@ module.exports={
   "_args": [
     [
       "elliptic@6.4.0",
-      "/home/emilio/dev/bitcoincashjs/bitcoincashjs"
+      "/home/ealmansi/dev/bitcoincashjs/bitcoincashjs"
     ]
   ],
   "_development": true,
@@ -15099,7 +15099,7 @@ module.exports={
   ],
   "_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-6.4.0.tgz",
   "_spec": "6.4.0",
-  "_where": "/home/emilio/dev/bitcoincashjs/bitcoincashjs",
+  "_where": "/home/ealmansi/dev/bitcoincashjs/bitcoincashjs",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
@@ -17902,7 +17902,7 @@ module.exports={
   "_args": [
     [
       "elliptic@6.4.0",
-      "/home/emilio/dev/bitcoincashjs/bitcoincashjs"
+      "/home/ealmansi/dev/bitcoincashjs/bitcoincashjs"
     ]
   ],
   "_development": true,
@@ -17927,7 +17927,7 @@ module.exports={
   ],
   "_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-6.4.0.tgz",
   "_spec": "6.4.0",
-  "_where": "/home/emilio/dev/bitcoincashjs/bitcoincashjs",
+  "_where": "/home/ealmansi/dev/bitcoincashjs/bitcoincashjs",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
@@ -22068,7 +22068,7 @@ module.exports={
   "_args": [
     [
       "elliptic@3.0.3",
-      "/home/emilio/dev/bitcoincashjs/bitcoincashjs"
+      "/home/ealmansi/dev/bitcoincashjs/bitcoincashjs"
     ]
   ],
   "_from": "elliptic@3.0.3",
@@ -22092,7 +22092,7 @@ module.exports={
   ],
   "_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-3.0.3.tgz",
   "_spec": "3.0.3",
-  "_where": "/home/emilio/dev/bitcoincashjs/bitcoincashjs",
+  "_where": "/home/ealmansi/dev/bitcoincashjs/bitcoincashjs",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
@@ -49374,7 +49374,7 @@ exports.createContext = Script.createContext = function (context) {
 },{"indexof":144}],213:[function(require,module,exports){
 module.exports={
   "name": "bitcoincashjs",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "A simple, safe, and powerful JavaScript Bitcoin Cash library.",
   "author": "Emilio Almansi <hi@ealmansi.com>",
   "main": "src/bitcoincash.js",

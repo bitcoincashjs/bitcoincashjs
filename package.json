@@ -1,6 +1,6 @@
 {
   "name": "bitcoincashjs",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "A simple, safe, and powerful JavaScript Bitcoin Cash library.",
   "author": "Emilio Almansi <hi@ealmansi.com>",
   "main": "src/bitcoincash.js",
